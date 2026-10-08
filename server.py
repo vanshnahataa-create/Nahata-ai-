@@ -7,7 +7,7 @@ app = Flask(__name__)
 CORS(app)
 
 # PASTE YOUR GROQ KEY HERE
-client = Groq(api_key="gsk_YOUR_KEY_HERE")
+client = Groq(api_key="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")
 
 @app.route("/")
 def home():
