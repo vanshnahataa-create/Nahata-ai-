@@ -1,0 +1,32 @@
+from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
+from groq import Groq
+import os
+
+app = Flask(__name__)
+CORS(app)
+
+# PASTE YOUR GROQ KEY HERE
+client = Groq(api_key="gsk_YOUR_KEY_HERE")
+
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    try:
+        user_msg = request.json.get("message")
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "You are Nahata.AI, a premium AI made by Nahata family from Chandvad, Maharashtra. You are helpful, cool, Gen-Z friendly."},
+                {"role": "user", "content": user_msg}
+            ]
+        )
+        return jsonify({"reply": response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({"reply": f"Error: {str(e)}"})
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
