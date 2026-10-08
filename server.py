@@ -26,7 +26,7 @@ def chat():
             return jsonify({"reply": "Please type something"})
 
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="llama-3.1-8b-versatile",
             messages=[
                 {"role": "system", "content": "You are Nahata.AI, made by Nahata family from Chandvad."},
                 {"role": "user", "content": user_msg}
