@@ -8,26 +8,21 @@ app = Flask(__name__)
 CORS(app)
 
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-
 os.makedirs("tmp", exist_ok=True)
+os.makedirs("uploads", exist_ok=True)
 
-# SIMPLE PDF MAKER - NO LIBRARY NEEDED
+# PURE PYTHON PDF - NO LIBRARY
 def create_pdf(text, filepath):
-    # Escape PDF text
     safe = text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
-    # Split into lines
     lines = safe.split("\n")
     stream = "BT\n/F1 12 Tf\n50 750 Td\n"
-    for line in lines[:60]: # max 60 lines per page
+    for line in lines[:60]:
         if not line.strip():
             stream += "0 -18 Td\n"
             continue
-        # limit length
         line = line[:90]
         stream += f"({line}) Tj\n0 -18 Td\n"
     stream += "ET"
-
-    # Build PDF objects
     pdf_content = f"""%PDF-1.4
 1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
 2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
@@ -58,24 +53,49 @@ def home():
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
-        data = request.get_json()
-        msg = data.get("message","")
+        msg = request.form.get("message","") if request.form else ""
+        if not msg:
+            data = request.get_json(silent=True)
+            if data:
+                msg = data.get("message","")
+
+        # File upload check
+        uploaded_info = ""
+        if 'file' in request.files:
+            file = request.files['file']
+            if file.filename!= '':
+                fid = uuid.uuid4().hex[:8]
+                ext = file.filename.split('.')[-1]
+                save_path = f"uploads/{fid}_{file.filename}"
+                file.save(save_path)
+                uploaded_info = f" [User uploaded file: {file.filename}]"
+                # If image
+                if ext.lower() in ['jpg','jpeg','png','webp']:
+                    return jsonify({
+                        "reply": f"Nice! I received your photo: {file.filename}. What you want me to do? Remove background, make logo, convert to PDF?",
+                        "image": f"/view-file/{fid}_{file.filename}",
+                        "is_upload": True
+                    })
+
         if "logo" in msg.lower() or "image" in msg.lower() or "photo" in msg.lower():
-            prompt = msg
-            img_url = f"https://image.pollinations.ai/prompt/{prompt}?width=512&height=512&seed={uuid.uuid4().hex[:4]}&nologo=true"
-            return jsonify({"reply": f"Here is your logo for: {prompt}", "image": img_url, "download": img_url})
+            img_url = f"https://image.pollinations.ai/prompt/{msg}?width=512&height=512&seed={uuid.uuid4().hex[:4]}&nologo=true"
+            return jsonify({"reply": f"Here is your image for: {msg}", "image": img_url, "download": img_url})
 
         response = client.chat.completions.create(
             model="openai/gpt-oss-20b",
             messages=[
-                {"role": "system", "content": "You are Nahata.AI, made by Nahata family."},
-                {"role": "user", "content": msg}
+                {"role": "system", "content": "You are Nahata.AI, friendly AI that can edit photos, make logos, create PDFs, help with videos."},
+                {"role": "user", "content": msg + uploaded_info}
             ]
         )
         return jsonify({"reply": response.choices[0].message.content})
     except Exception as e:
         print(e)
         return jsonify({"reply": f"Error: {e}"}), 500
+
+@app.route("/view-file/<name>")
+def view_file(name):
+    return send_file(f"uploads/{name}")
 
 @app.route("/make-pdf", methods=["POST"])
 def make_pdf():
@@ -94,6 +114,16 @@ def download_pdf(file_id):
     if os.path.exists(path):
         return send_file(path, as_attachment=True, download_name="NahataAI.pdf")
     return "File not found", 404
+
+@app.route("/upload", methods=["POST"])
+def upload():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file"}), 400
+    file = request.files['file']
+    fid = uuid.uuid4().hex[:8]
+    path = f"uploads/{fid}_{file.filename}"
+    file.save(path)
+    return jsonify({"url": f"/view-file/{fid}_{file.filename}", "name": file.filename})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
