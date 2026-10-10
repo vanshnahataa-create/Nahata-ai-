@@ -13,7 +13,7 @@ try:
     from groq import Groq
     key = os.environ.get("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")
     if key:
-        client = Groq(api_key=key)
+        client = Groq(api_key=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)
         print("Groq OK:", key[:8]+"...")
     else:
         print("WARNING: GROQ_API_KEY not set - dummy mode")
