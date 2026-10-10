@@ -1,124 +1,59 @@
-<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Nahata.AI</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
-body{background:#fff;color:#000;height:100vh;display:flex;flex-direction:column}
-.h{padding:14px;text-align:center;font-weight:800;border-bottom:1px solid #eee;position:sticky;top:0;background:#fff;z-index:10}
-#box{flex:1;overflow:auto;padding:20px;padding-bottom:180px;background:#f7f7f8}
-.m{margin:10px 0;padding:14px 18px;border-radius:18px;max-width:90%;white-space:pre-wrap;line-height:1.5;font-size:14px}
-.u{background:#000;color:#fff;margin-left:auto}
-.a{background:#fff;color:#000;margin-right:auto;border:1px solid #e5e5e5}
-.btn{padding:8px 14px;border-radius:20px;border:none;font-weight:700;cursor:pointer;margin:4px;display:inline-block;text-decoration:none;font-size:12px}
-.b{background:#000;color:#fff}.g{background:#10a37f;color:#fff}.y{background:#ff6b00;color:#fff}
-.img{max-width:100%;border-radius:12px;margin-top:8px}
-#panel{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e5e5;padding:10px}
-#tagBar{display:none;gap:8px;padding:8px;background:#f1f3f4;border-radius:12px;margin-bottom:8px;align-items:center}
-.tag{background:#000;color:#fff;padding:6px 12px;border-radius:20px;font-size:12px;display:flex;gap:8px;align-items:center}
-.tag button{background:#fff;color:#000;border:none;border-radius:50%;width:18px;height:18px;cursor:pointer;font-weight:800}
-.row{display:flex;gap:8px;align-items:center}
-#inp{flex:1;padding:12px 16px;border-radius:24px;border:1px solid #ddd;background:#fff;color:#000;outline:none}
-.icon{width:40px;height:40px;border-radius:50%;border:1px solid #ddd;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#fff}
-</style>
+<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3D Car Game - Nahata.AI</title>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+<style>*{margin:0;padding:0;overflow:hidden;font-family:system-ui}body{background:#000}#ui{position:absolute;top:10px;left:10px;color:#fff;background:rgba(0,0,0,0.7);padding:12px;border-radius:12px;z-index:10}#ui h2{font-size:16px}button{padding:8px 14px;border:none;border-radius:20px;background:#fff;color:#000;font-weight:800;cursor:pointer;margin-top:8px}</style>
 </head><body>
-<div class="h">Nahata.AI</div>
-<div id="box"><div class="m a">I am Nahata.AI made by Vansh Rajesh Nahata
-
-I can do everything like real ChatGPT:
-✅ White background + Black text
-✅ 📎 Attach file -> shows as tag on message bar -> type command -> Send
-✅ 🖼️ Photos -> Upload -> Edit -> Download
-✅ 📄 PDF -> Any answer -> Download as PDF (any type of question paper)
-✅ 💻 Code files -> ID card, Raspberry Pi, Website (.html.py.ino.js.css)
-✅ 📦 ZIP file -> Full project download
-✅ 🎥 Videos -> Upload -> Preview
-
-Try: Make ID card website / Make Raspberry Pi LED code / Make maths question paper</div></div>
-
-<div id="panel">
-<div id="tagBar"></div>
-<div class="row">
-<label class="icon">📎<input type="file" id="file" hidden></label>
-<input id="inp" placeholder="Type command for file... e.g. Make this PDF" onkeypress="if(event.key==='Enter')send()">
-<button onclick="send()" class="btn b">Send</button>
+<div id="ui">
+<h2>🏎️ Nahata 3D Car Game</h2>
+<p>By Vansh Rajesh Nahata</p>
+<p>WASD to Drive | SPACE Brake</p>
+<p>Speed: <span id="speed">0</span> km/h</p>
+<button onclick="location.href='/'">Back to Nahata.AI</button>
 </div>
-</div>
+<script type="module">
+import * as THREE from 'three';
+let scene=new THREE.Scene(); scene.background=new THREE.Color(0x87CEEB);
+let camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,1000);
+let renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setSize(innerWidth,innerHeight); renderer.shadowMap.enabled=true; document.body.appendChild(renderer.domElement);
 
-<script>
-let pendingFile=null;
-let last=""; let lastFiles=[];
-const box=document.getElementById("box");
-const tagBar=document.getElementById("tagBar");
-const fileInput=document.getElementById("file");
+// Light
+scene.add(new THREE.AmbientLight(0xffffff,0.7));
+let dl=new THREE.DirectionalLight(0xffffff,1); dl.position.set(10,20,10); dl.castShadow=true; scene.add(dl);
 
-fileInput.onchange=e=>{
- pendingFile=e.target.files[0];
- if(!pendingFile) return;
- tagBar.style.display="flex";
- tagBar.innerHTML=`<div class="tag">📎 ${pendingFile.name} <button onclick="removeTag()">×</button></div><small style="color:#666">Now type command and press Send</small>`;
- document.getElementById("inp").placeholder=`Ask about ${pendingFile.name}...`;
-};
+// Ground
+let ground=new THREE.Mesh(new THREE.PlaneGeometry(500,500), new THREE.MeshStandardMaterial({color:0x1a5d1a})); ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
+let road=new THREE.Mesh(new THREE.PlaneGeometry(20,500), new THREE.MeshStandardMaterial({color:0x333333})); road.rotation.x=-Math.PI/2; road.position.y=0.01; scene.add(road);
 
-function removeTag(){
- pendingFile=null;
- tagBar.style.display="none";
- tagBar.innerHTML="";
- fileInput.value="";
- document.getElementById("inp").placeholder="Type message...";
-}
+// Car - Simple 3D
+let carGroup=new THREE.Group();
+let body=new THREE.Mesh(new THREE.BoxGeometry(2,0.8,4), new THREE.MeshStandardMaterial({color:0xff0000})); body.position.y=0.8; body.castShadow=true; carGroup.add(body);
+let top=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.7,2), new THREE.MeshStandardMaterial({color:0x000000})); top.position.y=1.5; top.position.z=-0.3; carGroup.add(top);
+let wheelGeo=new THREE.CylinderGeometry(0.4,0.4,0.3,16);
+let wheelMat=new THREE.MeshStandardMaterial({color:0x111111});
+[[1,0,1.2],[-1,0,1.2],[1,0,-1.2],[-1,0,-1.2]].forEach(p=>{let w=new THREE.Mesh(wheelGeo,wheelMat); w.rotation.z=Math.PI/2; w.position.set(p[0],p[1]+0.4,p[2]); carGroup.add(w);});
+scene.add(carGroup);
 
-function addUser(t){box.innerHTML+=`<div class="m u">${t}</div>`; box.scrollTop=box.scrollHeight;}
-function addAI(h){let id="a"+Date.now(); box.innerHTML+=`<div class="m a" id="${id}">${h}</div>`; box.scrollTop=box.scrollHeight; return id;}
+let keys={}; let speed=0, angle=0;
+addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+camera.position.set(0,5,10);
 
-async function send(){
- let inp=document.getElementById("inp");
- let msg=inp.value.trim();
- if(!msg &&!pendingFile) return;
- if(pendingFile){
-   let fd=new FormData();
-   fd.append("file",pendingFile);
-   fd.append("message",msg || `Process file ${pendingFile.name}`);
-   addUser(`📎 ${pendingFile.name}<br>${msg}`);
-   inp.value=""; removeTag();
-   let id=addAI("Processing file...");
-   let r=await fetch("/chat",{method:"POST",body:fd});
-   let d=await r.json(); last=d.reply; lastFiles=d.files||[];
-   let html=d.reply.replace(/</g,"&lt;");
-   if(d.file) html+=`<br><a href="${d.file}" target="_blank" class="btn b">👁️ View File</a>`;
-   if(d.image) html+=`<br><img src="${d.image}" class="img">`;
-   if(lastFiles.length>0){
-     html+=`<br><br><b>📁 Files:</b><br>`;
-     lastFiles.forEach((f,i)=>{ html+=`<button class="btn b" onclick="downloadOne(${i})">⬇️ ${f[0]}</button>`; });
-     html+=`<br><button class="btn y" onclick="downloadZip()">📦 Download ZIP</button>`;
-   }
-   html+=`<br><button class="btn b" onclick="makePDF()">📄 PDF</button>`;
-   document.getElementById(id).innerHTML=html;
- } else {
-   addUser(msg); inp.value="";
-   let id=addAI("Thinking...");
-   let r=await fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})});
-   let d=await r.json(); last=d.reply; lastFiles=d.files||[];
-   let html=d.reply.replace(/</g,"&lt;");
-   if(d.image) html+=`<br><img src="${d.image}" class="img"><br><a href="${d.image}" download class="btn g">⬇️ Download Image</a>`;
-   if(lastFiles.length>0){
-     html+=`<br><br><b>📁 Files:</b><br>`;
-     lastFiles.forEach((f,i)=>{ html+=`<button class="btn b" onclick="downloadOne(${i})">⬇️ ${f[0]}</button>`; });
-     html+=`<br><button class="btn y" onclick="downloadZip()">📦 Download ZIP</button>`;
-   }
-   html+=`<br><button class="btn b" onclick="makePDF()">📄 PDF</button>`;
-   document.getElementById(id).innerHTML=html;
- }
+function animate(){
+ requestAnimationFrame(animate);
+ if(keys['w']||keys['arrowup']) speed=Math.min(speed+0.02,0.4);
+ if(keys['s']||keys['arrowdown']) speed=Math.max(speed-0.02,-0.15);
+ else speed*=0.98;
+ if(keys[' '] ) speed*=0.9;
+ if(keys['a']||keys['arrowleft']) angle+=0.03*speed;
+ if(keys['d']||keys['arrowright']) angle-=0.03*speed;
+ carGroup.rotation.y=angle;
+ carGroup.position.x+=Math.sin(angle)*speed;
+ carGroup.position.z+=Math.cos(angle)*speed;
+ camera.position.lerp(new THREE.Vector3(carGroup.position.x-8*Math.sin(angle),5,carGroup.position.z-8*Math.cos(angle)),0.1);
+ camera.lookAt(carGroup.position);
+ document.getElementById('speed').innerText=Math.floor(Math.abs(speed)*200);
+ renderer.render(scene,camera);
 }
-async function downloadOne(i){
- let r=await fetch("/make-file",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename:lastFiles[i][0],content:lastFiles[i][1]})});
- let d=await r.json(); window.location.href=d.url;
-}
-async function downloadZip(){
- let payload=lastFiles.map(f=>({filename:f[0],content:f[1]}));
- let r=await fetch("/make-zip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({files:payload})});
- let d=await r.json(); window.location.href=d.zip_url;
-}
-async function makePDF(){
- let r=await fetch("/make-pdf",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:last})});
- let d=await r.json(); window.location.href=d.pdf_url;
-}
+animate();
 </script>
 </body></html>
