@@ -1,71 +1,68 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nahata.AI</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,Segoe UI,sans-serif}
-body{background:#fff;color:#000;height:100vh;display:flex;flex-direction:column}
-.header{background:#fff;padding:16px;text-align:center;font-weight:800;font-size:20px;border-bottom:1px solid #e5e5e5;position:sticky;top:0;z-index:10}
-#chatbox{flex:1;overflow-y:auto;padding:20px;padding-bottom:150px;background:#f9fafb}
-.msg{margin:10px 0;padding:14px 18px;border-radius:18px;max-width:88%;line-height:1.6;font-size:15px;white-space:pre-wrap}
-.user{background:#2a7fff;color:#fff;margin-left:auto;border-bottom-right-radius:4px}
-.ai{background:#fff;color:#000;margin-right:auto;border:1px solid #e5e5e5;box-shadow:0 1px 3px rgba(0,0,0,0.05);border-bottom-left-radius:4px}
-.btn{margin-top:10px;padding:10px 16px;border-radius:8px;border:none;font-weight:700;cursor:pointer;display:inline-block;text-decoration:none;font-size:13px}
-.btn-pdf{background:#000;color:#fff}
-.btn-img{background:#00c853;color:#fff}
-.img-prev{max-width:100%;border-radius:12px;margin-top:10px}
-.input-area{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e5e5;padding:12px;display:flex;gap:8px}
-#inp{flex:1;padding:13px 16px;border-radius:24px;border:1px solid #ddd;background:#f1f3f4;outline:none}
-.send{background:#000;color:#fff;border:none;padding:0 22px;border-radius:24px;font-weight:700;cursor:pointer}
-.icon{width:44px;height:44px;border-radius:50%;border:1px solid #ddd;background:#f9fafb;display:flex;align-items:center;justify-content:center;cursor:pointer}
-</style>
-</head>
-<body>
-<div class="header">Nahata.AI - White Edition</div>
-<div id="chatbox"><div class="msg ai">Hello! I am Nahata.AI.
 
-Try: "Make 20 marks maths question paper for class 10 - algebra"
+#### 2. `templates/index.html` - Now downloads ANY file + ZIP
 
-Then click Make PDF - you will get real downloadable PDF.</div></div>
-<div class="input-area">
-<label class="icon">📎<input type="file" id="f" hidden onchange="up()"></label>
-<input id="inp" placeholder="e.g. Make maths question paper..." onkeypress="if(event.key==='Enter')send()">
-<button class="send" onclick="send()">Send</button>
+```html
+<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Nahata.AI</title>
+<style>*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}body{background:#fff;color:#000;height:100vh;display:flex;flex-direction:column}.h{padding:14px;text-align:center;font-weight:800;border-bottom:1px solid #eee;position:sticky;top:0;background:#fff}#box{flex:1;overflow:auto;padding:20px;padding-bottom:160px;background:#f7f7f8}.m{margin:10px 0;padding:14px 18px;border-radius:18px;max-width:90%;white-space:pre-wrap;line-height:1.5;font-size:14px}.u{background:#000;color:#fff;margin-left:auto}.a{background:#fff;color:#000;margin-right:auto;border:1px solid #e5e5e5}.btn{padding:8px 14px;border-radius:20px;border:none;font-weight:700;cursor:pointer;margin:4px;display:inline-block;text-decoration:none;font-size:12px}.b{background:#000;color:#fff}.g{background:#10a37f;color:#fff}.y{background:#ff6b00;color:#fff}.img{max-width:100%;border-radius:12px;margin-top:8px}#panel{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e5e5;padding:10px;display:flex;gap:8px}#inp{flex:1;padding:12px;border-radius:24px;border:1px solid #ddd;outline:none}.icon{width:40px;height:40px;border-radius:50%;border:1px solid #ddd;display:flex;align-items:center;justify-content:center;cursor:pointer}</style>
+</head><body>
+<div class="h">Nahata.AI • Full File Maker</div>
+<div id="box"><div class="m a">I can now make:
+✅ ID Card HTML + CSS
+✅ Raspberry Pi Python code (.py)
+✅ Arduino (.ino)
+✅ Website (HTML/CSS/JS)
+✅ Any file -.py.html.js.css.json
+✅ ZIP file of full project
+✅ PDF + Photo + Video
+
+Try: "Make ID card website" or "Make Raspberry Pi LED blink code"</div></div>
+<div id="panel">
+<label class="icon">📎<input type="file" id="file" hidden></label>
+<input id="inp" placeholder="e.g. Make ID card website zip...">
+<button onclick="send()" class="btn b">Send</button>
 </div>
 <script>
-let lastText="";
+let last=""; let lastFiles=[];
+const box=document.getElementById("box");
+function addUser(t){box.innerHTML+=`<div class="m u">${t}</div>`}
+function addAI(h){let id="a"+Date.now(); box.innerHTML+=`<div class="m a" id="${id}">${h}</div>`; box.scrollTop=box.scrollHeight; return id;}
 async function send(){
- let inp=document.getElementById("inp");
- let msg=inp.value.trim(); if(!msg) return;
- let box=document.getElementById("chatbox");
- box.innerHTML+=`<div class="msg user">${msg}</div>`;
- inp.value="";
- let id="t"+Date.now(); box.innerHTML+=`<div class="msg ai" id="${id}">Generating...</div>`; box.scrollTop=box.scrollHeight;
- let res=await fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})});
- let data=await res.json(); lastText=data.reply;
- let html=data.reply.replace(/</g,"&lt;");
- if(data.image) html+=`<br><img src="${data.image}" class="img-prev"><br><a href="${data.image}" target="_blank" class="btn btn-img">⬇️ Download Image</a>`;
- html+=`<br><button class="btn btn-pdf" onclick="makePDF()">📄 Download as PDF</button>`;
- document.getElementById(id).innerHTML=html; box.scrollTop=box.scrollHeight;
-}
-async function makePDF(){
- if(!lastText) return alert("No content yet!");
- let b=document.getElementById("chatbox"); b.innerHTML+=`<div class="msg ai">Making PDF...</div>`;
- let res=await fetch("/make-pdf",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:lastText})});
- let data=await res.json();
- if(data.pdf_url){ window.location.href=data.pdf_url; } else { alert(data.error); }
-}
-async function up(){
- let file=document.getElementById("f").files[0]; if(!file) return;
- let fd=new FormData(); fd.append("file",file); fd.append("message","Uploaded "+file.name);
- let box=document.getElementById("chatbox"); box.innerHTML+=`<div class="msg user">📎 ${file.name}</div>`;
- let id="t"+Date.now(); box.innerHTML+=`<div class="msg ai" id="${id}">Uploading...</div>`;
- let res=await fetch("/chat",{method:"POST",body:fd}); let data=await res.json(); lastText=data.reply;
- let html=data.reply; if(data.image) html+=`<br><img src="${data.image}" class="img-prev">`;
- html+=`<br><button class="btn btn-pdf" onclick="makePDF()">📄 Download as PDF</button>`;
+ let inp=document.getElementById("inp"); let msg=inp.value.trim(); if(!msg) return;
+ addUser(msg); inp.value=""; let id=addAI("Coding..."); box.scrollTop=box.scrollHeight;
+ let r=await fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})});
+ let d=await r.json(); last=d.reply; lastFiles=d.files||[];
+ let html=d.reply.replace(/</g,"&lt;");
+ if(d.image) html+=`<br><img src="${d.image}" class="img"><br><a href="${d.image}" download class="btn g">⬇️ Download Image</a>`;
+ // Auto make download buttons for each file
+ if(lastFiles.length>0){
+   html+=`<br><br><b>📁 Files ready:</b><br>`;
+   lastFiles.forEach((f,i)=>{
+     html+=`<button class="btn b" onclick="downloadOne(${i})">⬇️ ${f[0]}</button>`;
+   });
+   html+=`<br><button class="btn y" onclick="downloadZip()">📦 Download Full ZIP</button>`;
+ }
+ html+=`<br><button class="btn b" onclick="makePDF()">📄 Download as PDF</button>`;
  document.getElementById(id).innerHTML=html;
 }
-</script>
-</body>
+async function downloadOne(i){
+ let fname=lastFiles[i][0]; let content=lastFiles[i][1];
+ let r=await fetch("/make-file",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename:fname,content:content})});
+ let d=await r.json(); window.location.href=d.url;
+}
+async function downloadZip(){
+ let payload=lastFiles.map(f=>({filename:f[0],content:f[1]}));
+ let r=await fetch("/make-zip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({files:payload})});
+ let d=await r.json(); window.location.href=d.zip_url;
+}
+async function makePDF(){
+ let r=await fetch("/make-pdf",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:last})});
+ let d=await r.json(); window.location.href=d.pdf_url;
+}
+document.getElementById("file").onchange=async e=>{
+ let fd=new FormData(); fd.append("file",e.target.files[0]);
+ let r=await fetch("/chat",{method:"POST",body:fd}); let d=await r.json();
+ addUser("📎 "+e.target.files[0].name);
+ addAI(d.reply);
+};
+</script></body>
 </html>
