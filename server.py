@@ -83,7 +83,6 @@ def chat():
             msg="Hello"
         lower=msg.lower()
 
-        # ==== PHOTO / VIDEO / FILE UPLOAD WITH REAL EDITING ====
         saved_urls=[]
         for f in files:
             if f.filename:
@@ -92,17 +91,12 @@ def chat():
                 f.save(path)
                 saved_urls.append((f.filename, path, safe))
 
-        # If files uploaded
         if saved_urls:
-            # Check what editing user wants
             is_photo = any(x[0].lower().endswith(('.jpg','.jpeg','.png','.webp')) for x in saved_urls)
             is_video = any(x[0].lower().endswith(('.mp4','.mov','.avi','.mkv','.webm')) for x in saved_urls)
 
-            # PHOTO EDITING LOGIC - REAL
             if is_photo:
-                # Build edited image using pollinations with user's prompt
                 edit_prompt = msg if msg else "enhance, 4k, beautiful, professional"
-                # If no edit instruction, make it HD enhance
                 if len(edit_prompt)<5:
                     edit_prompt="enhance to 4k ultra HD, beautiful, professional photo"
                 edited_url = f"https://image.pollinations.ai/prompt/{edit_prompt}?width=1024&height=1024&seed={uuid.uuid4().hex[:4]}&enhance=true&nologo=true"
@@ -115,10 +109,8 @@ def chat():
                     "edited": True
                 })
 
-            # VIDEO EDITING LOGIC - REAL
             if is_video:
                 first_file = saved_urls[0][2]
-                # For video, we return same video with edit description + thumbnail edited
                 thumb_url = f"https://image.pollinations.ai/prompt/{msg if msg else 'video thumbnail cinematic'}?width=1280&height=720&seed={uuid.uuid4().hex[:4]}"
                 return jsonify({
                     "reply": f"✅ Video {saved_urls[0][0]} EDITED! Command: '{msg}' - Video processed: trimmed, enhanced, filter applied. Original + Edited preview below. Download as MP4 (not PDF). Made for {email}",
@@ -128,11 +120,9 @@ def chat():
                     "edited": True
                 })
 
-            # Other files
             first_file = saved_urls[0][2]
             return jsonify({"reply": f"File {saved_urls[0][0]} uploaded! Command: {msg}", "file": f"/view-file/{first_file}"})
 
-        # IMAGE GENERATION (no upload)
         if any(k in lower for k in ["logo","image","photo","poster","thumbnail","banner","generate image","create image"]) and "question paper" not in lower:
             url=f"https://image.pollinations.ai/prompt/{msg}?width=1024&height=1024&seed={uuid.uuid4().hex[:4]}&enhance=true"
             return jsonify({"reply":f"Image generated for: {msg} - HD 4K - Nahata.AI by Vansh","image":url})
@@ -145,7 +135,7 @@ def chat():
             return jsonify({"reply":f"Nahata.AI - Add Groq key - Your message: {msg}"})
 
         system_prompt="You are Nahata.AI made by Vansh Rajesh Nahata. World best AI. You make photos, files, pdf, code, videos, question papers. For photo/video editing, explain what edits you did. For code give FILENAME: and block."
-        r=client.chat.completions.create(model="llama-3.3-70b-versatile",messages=[{"role":"system","content":system_prompt},{"role":"user","content":f"User {email}: {msg}"}])
+        r=client.chat.completions.create(model="llama-3.2-90b-vision-preview",messages=[{"role":"system","content":system_prompt},{"role":"user","content":f"User {email}: {msg}"}])
         reply=r.choices[0].message.content
         files_out=[]
         pattern=r"FILENAME:\s*([^\n]+)\n```[\w]*\n(.*?)```"
