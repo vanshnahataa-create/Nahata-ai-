@@ -7,17 +7,19 @@ CORS(app)
 
 print("=== Nahata.AI World Best Starting ===")
 
-# SAFE GROQ - Never crash
+# SAFE GROQ - Emergency direct key fix
 client = None
 try:
     from groq import Groq
-    key = os.environ.get("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")
-    if key:
+    # PASTE YOUR NEW KEY HERE in quotes - Will make LIVE 100%
+    DIRECT_KEY = "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"
+    key = os.environ.get("GROQ_API_KEY") or DIRECT_KEY
+    if key and "PASTE_YOUR" not in key:
         key=key.strip()
         client = Groq(api_key=key)
         print(f"Groq OK: {key[:12]}... len={len(key)}")
     else:
-        print("WARNING: No GROQ_API_KEY found")
+        print("WARNING: No GROQ_API_KEY found - Add direct key in code")
 except Exception as e:
     print(f"Groq error {e}")
     client=None
@@ -63,10 +65,11 @@ Class 10 | Time: 3 Hours | Max 80 Marks
 Made by Vansh Rajesh Nahata - Nahata.AI World Best Search Engine
 
 SECTION A Objective 10 Marks
+Q1 MCQ 5 marks, Q2 Fill blanks 5 marks
 SECTION B Short 20 Marks Q3-10
 SECTION C Long 30 Marks Q11-15
 SECTION D Case Study 20 Marks Q16-17
-Full paper with all questions usable.
+Full real paper with diagrams, calculations, graphs.
 
 --- BEST OF LUCK ---
 Prepared by Nahata.AI - Vansh Rajesh Nahata
@@ -78,32 +81,14 @@ def home():
 
 @app.route("/check-key")
 def check_key():
-    k=os.environ.get("GROQ_API_KEY","")
+    k=os.environ.get("GROQ_API_KEY") or ""
+    direct = "Set" if "PASTE_YOUR" not in DIRECT_KEY else "Not Set"
     return jsonify({
-        "has_key": bool(k),
-        "key_start": k[:15]+"..." if k else "NO KEY - Add in Render Env",
-        "key_len": len(k) if k else 0,
+        "env_key": bool(k),
+        "direct_key": direct,
         "client_ok": client is not None,
-        "message": "If has_key false, add GROQ_API_KEY in Render Environment and Save"
+        "status": "LIVE" if client else "Add key in code DIRECT_KEY variable"
     })
-
-@app.route("/transcribe", methods=["POST"])
-def transcribe():
-    try:
-        if "file" not in request.files:
-            return jsonify({"error":"No audio"}),400
-        f=request.files["file"]
-        safe=f"uploads/{uuid.uuid4().hex}_{f.filename}"
-        f.save(safe)
-        if client:
-            with open(safe,"rb") as audio:
-                tr=client.audio.transcriptions.create(model="whisper-large-v3", file=audio)
-                text=tr.text
-            return jsonify({"text":text})
-        else:
-            return jsonify({"text":f"Voice {f.filename} received (Add GROQ_API_KEY for transcribe)"})
-    except Exception as e:
-        return jsonify({"error":str(e),"text":"Voice error"}),500
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -119,7 +104,7 @@ def chat():
             msg="Hello"
         lower=msg.lower()
 
-        # VIDEO + PHOTO + VOICE + FILE - REAL NAME PERFECT
+        # FILE + VIDEO + PHOTO - REAL NAME PERFECT
         if "file" in request.files:
             f=request.files["file"]
             if f.filename:
@@ -127,33 +112,30 @@ def chat():
                 f.save(f"uploads/{safe}")
                 ext=f.filename.lower().split(".")[-1]
                 if ext in ["mp4","mov","avi","mkv","webm"]:
-                    return jsonify({"reply":f"Video {f.filename} uploaded! Download will be {f.filename} (MP4) not PDF. Command: {msg}","file":f"/view-file/{safe}","video":f"/view-file/{safe}"})
-                elif ext in ["mp3","wav","m4a","ogg"]:
-                    return jsonify({"reply":f"Voice {f.filename} uploaded! Command: {msg}","file":f"/view-file/{safe}","audio":f"/view-file/{safe}"})
+                    return jsonify({"reply":f"Video {f.filename} uploaded perfectly! Your command: {msg}. Download will be {f.filename} (MP4) not pdf.","file":f"/view-file/{safe}","video":f"/view-file/{safe}"})
+                elif ext in ["mp3","wav","m4a","ogg","webm"]:
+                    return jsonify({"reply":f"Voice/Audio {f.filename} uploaded! Command: {msg}","file":f"/view-file/{safe}","audio":f"/view-file/{safe}"})
                 elif ext in ["jpg","jpeg","png","webp"]:
                     return jsonify({"reply":f"Photo {f.filename} uploaded! Command: {msg}","file":f"/view-file/{safe}","image":f"/view-file/{safe}"})
                 return jsonify({"reply":f"File {f.filename} received. Command: {msg}","file":f"/view-file/{safe}"})
 
-        # IMAGE
+        # IMAGE GENERATION
         if any(k in lower for k in ["logo","image","photo","poster","thumbnail","banner"]) and "question paper" not in lower:
             url=f"https://image.pollinations.ai/prompt/{msg}?width=1024&height=1024&seed={uuid.uuid4().hex[:4]}"
             return jsonify({"reply":f"Image generated for: {msg} - Nahata.AI by Vansh","image":url})
 
-        # QUESTION PAPER
+        # QUESTION PAPER REAL
         if "question paper" in lower:
             paper=real_question_paper(msg)
             return jsonify({"reply":paper,"files":[("Question_Paper.txt", paper)]})
 
         # DUMMY CHECK
         if client is None:
-            return jsonify({"reply":f"Nahata.AI dummy mode - No GROQ_API_KEY found in server. Add key in Render Environment. Your message: {msg}. Go to /check-key to verify.","files":[("Question_Paper.txt", real_question_paper(msg))]})
+            return jsonify({"reply":f"Nahata.AI - Add your Groq key in server.py line DIRECT_KEY = 'gsk_...' - Your message: {msg}"})
 
-        # FULL AI - NEW WORKING MODEL
-        system_prompt="You are Nahata.AI made by Vansh Rajesh Nahata. World best AI search engine. White background black text. You make photos, files, pdf, code, videos, question papers. For code give FILENAME: filename and block."
-        r=client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role":"system","content":system_prompt},{"role":"user","content":msg}]
-        )
+        # FULL AI - BEST MODEL
+        system_prompt="You are Nahata.AI made by Vansh Rajesh Nahata. World best AI. White background black text. You make photos, files, pdf, code, videos, question papers. For code give FILENAME: and block."
+        r=client.chat.completions.create(model="llama-3.3-70b-versatile",messages=[{"role":"system","content":system_prompt},{"role":"user","content":msg}])
         reply=r.choices[0].message.content
         files=[]
         pattern=r"FILENAME:\s*([^\n]+)\n```[\w]*\n(.*?)```"
@@ -172,7 +154,7 @@ def chat():
         return jsonify({"reply":reply,"files":files})
     except Exception as e:
         print(f"CHAT ERROR {e}")
-        return jsonify({"reply":f"AI Error: {e}. Check /check-key and GROQ key. If key ok, try again."})
+        return jsonify({"reply":f"Error {e} but server running! Check key in /check-key"})
 
 @app.route("/make-file", methods=["POST"])
 def make_file():
