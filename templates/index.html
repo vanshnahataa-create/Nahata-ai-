@@ -1,124 +1,117 @@
-<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Nahata.AI</title>
+<!DOCTYPE html>
+<html>
+<head>
+<title>Nahata.AI - World Best by Vansh</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
-body{background:#fff;color:#000;height:100vh;display:flex;flex-direction:column}
-.h{padding:14px;text-align:center;font-weight:800;border-bottom:1px solid #eee;position:sticky;top:0;background:#fff;z-index:10}
-#box{flex:1;overflow:auto;padding:20px;padding-bottom:180px;background:#f7f7f8}
-.m{margin:10px 0;padding:14px 18px;border-radius:18px;max-width:90%;white-space:pre-wrap;line-height:1.5;font-size:14px}
-.u{background:#000;color:#fff;margin-left:auto}
-.a{background:#fff;color:#000;margin-right:auto;border:1px solid #e5e5e5}
-.btn{padding:8px 14px;border-radius:20px;border:none;font-weight:700;cursor:pointer;margin:4px;display:inline-block;text-decoration:none;font-size:12px}
-.b{background:#000;color:#fff}.g{background:#10a37f;color:#fff}.y{background:#ff6b00;color:#fff}
-.img{max-width:100%;border-radius:12px;margin-top:8px}
-#panel{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e5e5;padding:10px}
-#tagBar{display:none;gap:8px;padding:8px;background:#f1f3f4;border-radius:12px;margin-bottom:8px;align-items:center}
-.tag{background:#000;color:#fff;padding:6px 12px;border-radius:20px;font-size:12px;display:flex;gap:8px;align-items:center}
-.tag button{background:#fff;color:#000;border:none;border-radius:50%;width:18px;height:18px;cursor:pointer;font-weight:800}
-.row{display:flex;gap:8px;align-items:center}
-#inp{flex:1;padding:12px 16px;border-radius:24px;border:1px solid #ddd;background:#fff;color:#000;outline:none}
-.icon{width:40px;height:40px;border-radius:50%;border:1px solid #ddd;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#fff}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
+body{background:white;color:black;height:100vh;display:flex;flex-direction:column}
+header{background:black;color:white;padding:12px 20px;display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:20px} header span{font-size:12px;color:#ccc}
+#userBox{font-size:13px;background:#222;padding:6px 10px;border-radius:20px}
+#chat{flex:1;overflow-y:auto;padding:20px;background:#f9f9f9}
+.msg{max-width:80%;padding:12px 16px;border-radius:18px;margin:8px 0;word-wrap:break-word;white-space:pre-wrap}
+.user{background:black;color:white;margin-left:auto;border-bottom-right-radius:4px}
+.ai{background:white;border:1px solid #ddd;color:black;border-bottom-left-radius:4px}
+#inputArea{display:flex;padding:12px;border-top:1px solid #ddd;gap:8px;background:white;align-items:center}
+input{flex:1;padding:12px 16px;border:1px solid #ccc;border-radius:25px;outline:none}
+button{padding:12px 18px;border:none;border-radius:25px;background:black;color:white;cursor:pointer}
+#fileBtn{background:#eee;color:black}
+#loginModal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;justify-content:center;align-items:center;z-index:9999}
+.loginCard{background:white;padding:30px;border-radius:16px;width:90%;max-width:360px;text-align:center}
+.loginCard input{width:100%;margin:10px 0;border:1px solid #ccc}
+.loginCard h2{margin-bottom:10px}
 </style>
-</head><body>
-<div class="h">Nahata.AI</div>
-<div id="box"><div class="m a">I am Nahata.AI made by Vansh Rajesh Nahata
+</head>
+<body>
 
-I can do everything like real ChatGPT:
-✅ White background + Black text
-✅ 📎 Attach file -> shows as tag on message bar -> type command -> Send
-✅ 🖼️ Photos -> Upload -> Edit -> Download
-✅ 📄 PDF -> Any answer -> Download as PDF (maths question paper)
-✅ 💻 Code files -> ID card, Raspberry Pi, Website (.html.py.ino.js.css)
-✅ 📦 ZIP file -> Full project download
-✅ 🎥 Videos -> Upload -> Preview
-
-Try: Make ID card website / Make Raspberry Pi LED code / Make maths question paper</div></div>
-
-<div id="panel">
-<div id="tagBar"></div>
-<div class="row">
-<label class="icon">📎<input type="file" id="file" hidden></label>
-<input id="inp" placeholder="Type command for file... e.g. Make this PDF" onkeypress="if(event.key==='Enter')send()">
-<button onclick="send()" class="btn b">Send</button>
+<!-- LOGIN POPUP - Gmail Remember -->
+<div id="loginModal">
+  <div class="loginCard">
+    <h2>Welcome to Nahata.AI</h2>
+    <p style="font-size:13px;color:#666;margin-bottom:15px">Made by Vansh Rajesh Nahata<br>Enter your Gmail to continue</p>
+    <input id="nameInput" placeholder="Your Name" />
+    <input id="emailInput" placeholder="Your Gmail (example@gmail.com)" type="email" />
+    <button onclick="saveUser()" style="width:100%;margin-top:10px">Continue →</button>
+    <p style="font-size:11px;color:#888;margin-top:10px">Saved in browser - Auto login next time</p>
+  </div>
 </div>
+
+<header>
+  <div><h1>Nahata.AI</h1><span>World Best Search Engine - Vansh</span></div>
+  <div id="userBox"></div>
+</header>
+
+<div id="chat"></div>
+
+<div id="inputArea">
+  <input type="file" id="fileInput" style="display:none" onchange="uploadFile()">
+  <button id="fileBtn" onclick="document.getElementById('fileInput').click()">📁</button>
+  <input id="msgInput" placeholder="Ask anything... video, photo, file, paper..." onkeypress="if(event.key==='Enter')send()" />
+  <button onclick="startVoice()" id="voiceBtn">🎤</button>
+  <button onclick="send()">Send</button>
 </div>
 
 <script>
-let pendingFile=null;
-let last=""; let lastFiles=[];
-const box=document.getElementById("box");
-const tagBar=document.getElementById("tagBar");
-const fileInput=document.getElementById("file");
+let user = JSON.parse(localStorage.getItem("nahata_user") || "null");
 
-fileInput.onchange=e=>{
- pendingFile=e.target.files[0];
- if(!pendingFile) return;
- tagBar.style.display="flex";
- tagBar.innerHTML=`<div class="tag">📎 ${pendingFile.name} <button onclick="removeTag()">×</button></div><small style="color:#666">Now type command and press Send</small>`;
- document.getElementById("inp").placeholder=`Ask about ${pendingFile.name}...`;
-};
-
-function removeTag(){
- pendingFile=null;
- tagBar.style.display="none";
- tagBar.innerHTML="";
- fileInput.value="";
- document.getElementById("inp").placeholder="Type message...";
+function checkLogin(){
+  if(user && user.email){
+    document.getElementById("loginModal").style.display="none";
+    document.getElementById("userBox").innerHTML = `👤 ${user.name} | ${user.email} <span onclick="logout()" style="cursor:pointer;color:red;margin-left:8px">Logout</span>`;
+    addMsg(`Welcome back ${user.name}! (${user.email}) - I remembered you from browser! How can I help?`, "ai");
+  } else {
+    document.getElementById("loginModal").style.display="flex";
+  }
 }
 
-function addUser(t){box.innerHTML+=`<div class="m u">${t}</div>`; box.scrollTop=box.scrollHeight;}
-function addAI(h){let id="a"+Date.now(); box.innerHTML+=`<div class="m a" id="${id}">${h}</div>`; box.scrollTop=box.scrollHeight; return id;}
+function saveUser(){
+  let name=document.getElementById("nameInput").value.trim();
+  let email=document.getElementById("emailInput").value.trim();
+  if(!name ||!email){alert("Enter Name and Gmail");return;}
+  if(!email.includes("@gmail.com")){alert("Please enter Gmail ID (must contain @gmail.com)");return;}
+  user={name,email,time:new Date().toLocaleString()};
+  localStorage.setItem("nahata_user", JSON.stringify(user));
+  document.getElementById("loginModal").style.display="none";
+  document.getElementById("userBox").innerHTML = `👤 ${name} | ${email} <span onclick="logout()" style="cursor:pointer;color:red;margin-left:8px">Logout</span>`;
+  addMsg(`Hi ${name}! Your Gmail ${email} saved in browser! Next time auto login. I am Nahata.AI made by Vansh.`, "ai");
+}
+
+function logout(){
+  localStorage.removeItem("nahata_user");
+  location.reload();
+}
+
+function addMsg(t,who){
+  let d=document.createElement("div"); d.className="msg "+who; d.innerText=t;
+  document.getElementById("chat").appendChild(d);
+  document.getElementById("chat").scrollTop=document.getElementById("chat").scrollHeight;
+}
 
 async function send(){
- let inp=document.getElementById("inp");
- let msg=inp.value.trim();
- if(!msg &&!pendingFile) return;
- if(pendingFile){
-   let fd=new FormData();
-   fd.append("file",pendingFile);
-   fd.append("message",msg || `Process file ${pendingFile.name}`);
-   addUser(`📎 ${pendingFile.name}<br>${msg}`);
-   inp.value=""; removeTag();
-   let id=addAI("Processing file...");
-   let r=await fetch("/chat",{method:"POST",body:fd});
-   let d=await r.json(); last=d.reply; lastFiles=d.files||[];
-   let html=d.reply.replace(/</g,"&lt;");
-   if(d.file) html+=`<br><a href="${d.file}" target="_blank" class="btn b">👁️ View File</a>`;
-   if(d.image) html+=`<br><img src="${d.image}" class="img">`;
-   if(lastFiles.length>0){
-     html+=`<br><br><b>📁 Files:</b><br>`;
-     lastFiles.forEach((f,i)=>{ html+=`<button class="btn b" onclick="downloadOne(${i})">⬇️ ${f[0]}</button>`; });
-     html+=`<br><button class="btn y" onclick="downloadZip()">📦 Download ZIP</button>`;
-   }
-   html+=`<br><button class="btn b" onclick="makePDF()">📄 PDF</button>`;
-   document.getElementById(id).innerHTML=html;
- } else {
-   addUser(msg); inp.value="";
-   let id=addAI("Thinking...");
-   let r=await fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})});
-   let d=await r.json(); last=d.reply; lastFiles=d.files||[];
-   let html=d.reply.replace(/</g,"&lt;");
-   if(d.image) html+=`<br><img src="${d.image}" class="img"><br><a href="${d.image}" download class="btn g">⬇️ Download Image</a>`;
-   if(lastFiles.length>0){
-     html+=`<br><br><b>📁 Files:</b><br>`;
-     lastFiles.forEach((f,i)=>{ html+=`<button class="btn b" onclick="downloadOne(${i})">⬇️ ${f[0]}</button>`; });
-     html+=`<br><button class="btn y" onclick="downloadZip()">📦 Download ZIP</button>`;
-   }
-   html+=`<br><button class="btn b" onclick="makePDF()">📄 PDF</button>`;
-   document.getElementById(id).innerHTML=html;
- }
+  let inp=document.getElementById("msgInput");
+  let txt=inp.value.trim(); if(!txt)return;
+  addMsg(txt,"user"); inp.value="";
+  let r=await fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:txt,email:user?user.email:"",name:user?user.name:""})});
+  let data=await r.json();
+  addMsg(data.reply,"ai");
+  if(data.image){ let img=document.createElement("img"); img.src=data.image; img.style.maxWidth="90%"; img.style.borderRadius="12px"; img.style.margin="10px 0"; document.getElementById("chat").appendChild(img); }
+  if(data.files){ data.files.forEach(f=>{ let a=document.createElement("a"); a.href="#"; a.innerText="📄 Download "+f[0]; a.onclick=async()=>{ let res=await fetch("/make-file",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename:f[0],content:f[1]})}); let j=await res.json(); window.open(j.url); }; document.getElementById("chat").appendChild(a); }); }
 }
-async function downloadOne(i){
- let r=await fetch("/make-file",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename:lastFiles[i][0],content:lastFiles[i][1]})});
- let d=await r.json(); window.location.href=d.url;
+
+async function uploadFile(){
+  let file=document.getElementById("fileInput").files[0]; if(!file)return;
+  let fd=new FormData(); fd.append("file",file); fd.append("message",document.getElementById("msgInput").value||"File upload");
+  addMsg("Uploading "+file.name+"...","user");
+  let r=await fetch("/chat",{method:"POST",body:fd}); let data=await r.json(); addMsg(data.reply,"ai");
 }
-async function downloadZip(){
- let payload=lastFiles.map(f=>({filename:f[0],content:f[1]}));
- let r=await fetch("/make-zip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({files:payload})});
- let d=await r.json(); window.location.href=d.zip_url;
+
+function startVoice(){
+  let rec=new (window.SpeechRecognition||window.webkitSpeechRecognition)();
+  rec.lang="en-IN"; rec.start(); rec.onresult=(e)=>{document.getElementById("msgInput").value=e.results[0][0].transcript; send();}
 }
-async function makePDF(){
- let r=await fetch("/make-pdf",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:last})});
- let d=await r.json(); window.location.href=d.pdf_url;
-}
+
+checkLogin();
 </script>
-</body></html>
+</body>
+</html>
