@@ -135,7 +135,7 @@ def chat():
             return jsonify({"reply":f"Nahata.AI - Add Groq key - Your message: {msg}"})
 
         system_prompt="You are Nahata.AI made by Vansh Rajesh Nahata. World best AI. You make photos, files, pdf, code, videos, question papers. For photo/video editing, explain what edits you did. For code give FILENAME: and block."
-        r=client.chat.completions.create(model="llama-3.2-90b-vision-preview",messages=[{"role":"system","content":system_prompt},{"role":"user","content":f"User {email}: {msg}"}])
+        r=client.chat.completions.create(model="openai/gpt-oss-20b",messages=[{"role":"system","content":system_prompt},{"role":"user","content":f"User {email}: {msg}"}])
         reply=r.choices[0].message.content
         files_out=[]
         pattern=r"FILENAME:\s*([^\n]+)\n```[\w]*\n(.*?)```"
