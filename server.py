@@ -135,7 +135,7 @@ def chat():
 
         # FULL AI - BEST MODEL
         system_prompt="You are Nahata.AI made by Vansh Rajesh Nahata. World best AI. White background black text. You make photos, files, pdf, code, videos, question papers. For code give FILENAME: and block."
-        r=client.chat.completions.create(model="llama-3.3-70b-versatile",messages=[{"role":"system","content":system_prompt},{"role":"user","content":msg}])
+        r=client.chat.completions.create(model="openai/gpt-oss-20b",messages=[{"role":"system","content":system_prompt},{"role":"user","content":msg}])
         reply=r.choices[0].message.content
         files=[]
         pattern=r"FILENAME:\s*([^\n]+)\n```[\w]*\n(.*?)```"
