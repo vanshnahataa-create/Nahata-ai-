@@ -16,7 +16,7 @@ print("=== Nahata.AI starting ===")
 client = None
 try:
     from groq import Groq
-    k = os.environ.get("GROQ_API_KEY", "").strip()
+    k = os.environ.get("GROQ_API_KEY", "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").strip()
     if k:
         client = Groq(api_key=k); print("Groq OK")
     else:
@@ -24,7 +24,7 @@ try:
 except Exception as e:
     print(f"Groq error {e}")
 
-BFL_KEY = os.environ.get("BFL_API_KEY", "").strip()
+BFL_KEY = os.environ.get("BFL_API_KEY", "cfut_jzAKcohFHr3lnx5zlL9slhGhdvCO4AcCEIJT3ZMJe8d649e9").strip()
 BFL_URL = os.environ.get("BFL_API_URL", "https://api.bfl.ai/v1")
 print("Photo editing:", "ON" if BFL_KEY else "OFF (no BFL_API_KEY)")
 
