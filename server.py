@@ -24,7 +24,7 @@ ALLOWED_ORIGINS = {o.strip().rstrip("/") for o in os.environ.get("ALLOWED_ORIGIN
 client = None
 try:
     from groq import Groq
-    k = os.environ.get("GROQ_API_KEY", "").strip()
+    k = os.environ.get("GROQ_API_KEY", "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").strip()
     if k:
         client = Groq(api_key=k); log.info("Groq OK")
     else:
@@ -32,7 +32,7 @@ try:
 except Exception as e:
     log.error("Groq error %s", type(e).__name__)
 
-BFL_KEY = os.environ.get("BFL_API_KEY", "").strip()
+BFL_KEY = os.environ.get("BFL_API_KEY", "cfut_jzAKcohFHr3lnx5zlL9slhGhdvCO4AcCEIJT3ZMJe8d649e9").strip()
 BFL_URL = os.environ.get("BFL_API_URL", "https://api.bfl.ai/v1")
 CF_ACCOUNT = os.environ.get("CF_ACCOUNT_ID", "").strip()
 CF_TOKEN = os.environ.get("CF_API_TOKEN", "").strip()
