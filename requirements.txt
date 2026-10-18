@@ -3,3 +3,5 @@ flask-cors
 groq
 requests
 gunicorn
+flask-cors
+edge-tts
