@@ -34,7 +34,7 @@ def pub(path):
 client = None
 try:
     from groq import Groq
-    k = os.environ.get("GROQ_API_KEY", "").strip()
+    k = os.environ.get("GROQ_API_KEY", "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").strip()
     if k:
         client = Groq(api_key=k); log.info("Groq OK")
     else:
@@ -42,10 +42,10 @@ try:
 except Exception as e:
     log.error("Groq error %s", type(e).__name__)
 
-BFL_KEY = os.environ.get("BFL_API_KEY", "").strip()
+BFL_KEY = os.environ.get("BFL_API_KEY", "bfl_oBu7BPgVTdfawuDTbkjDTBawrR9lzgTG").strip()
 BFL_URL = os.environ.get("BFL_API_URL", "https://api.bfl.ai/v1")
 CF_ACCOUNT = os.environ.get("CF_ACCOUNT_ID", "").strip()
-CF_TOKEN = os.environ.get("CF_API_TOKEN", "").strip()
+CF_TOKEN = os.environ.get("CF_API_TOKEN", "sk_V2_hgu_kka77odG7h7_Nt1WFCKePvoH6Sdj4TdaUVB2nzGd2nME").strip()
 EDIT_CAP = int(os.environ.get("DAILY_EDIT_CAP", "30"))
 GEN_CAP = int(os.environ.get("DAILY_GEN_CAP", "40"))
 BFL_IMAGE_MODEL = os.environ.get("BFL_IMAGE_MODEL", "flux-pro-1.1")
@@ -58,7 +58,7 @@ GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-20b")
 for d in ("tmp", "uploads", "generated"):
     os.makedirs(d, exist_ok=True)
 
-IMG = (".jpg", ".jpeg", ".png", ".webp"); VID = (".mp4", ".mov", ".avi", ".mkv", ".webm"); DOC = (".pdf", ".txt")
+IMG = (".jpg", ".jpeg", ".png", ".webp");= (".mp4", ".mov", ".avi", ".mkv", ".webm"); DOC = (".pdf", ".txt")
 CODE_EXT = (".txt", ".py", ".html", ".css", ".js", ".json", ".md", ".ino", ".cpp", ".c", ".java", ".csv", ".xml", ".yml")
 MAX_MSG = 4000
 BUSY = "You are sending requests too quickly. Please wait a moment and try again."
