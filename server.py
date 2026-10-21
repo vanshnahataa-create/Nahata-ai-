@@ -1,13 +1,13 @@
 # Nahata.AI server (hardened)
 # pip install flask groq requests gunicorn pypdf pillow imageio-ffmpeg      (flask-cors is only needed if you set CORS_ORIGINS)
 # Voice: ELEVENLABS_API_KEY + ELEVEN_VOICE_JARVIS + ELEVEN_VOICE_ULTRON (optional premium voices) | TTS_VOICE_JARVIS / TTS_VOICE_ULTRON (change the free voices)
-# Env vars: GROQ_API_KEY (chat) | BFL_API_KEY (Flux: image generation + photo editing, optional) | HEYGEN_API_KEY (avatar videos, optional)
+# Env vars: GROQ_API_KEY (chat) | QWEN_API_KEY (optional Qwen generative photo editing) | BFL_API_KEY (Flux image generation/editing fallback) | HEYGEN_API_KEY (optional videos)
 #           HEYGEN_AVATAR_ID / HEYGEN_VOICE_ID (optional, auto-picked if empty) | DAILY_GEN_CAP (default 40) | DAILY_VIDEO_CAP (default 5)
 #           | CF_ACCOUNT_ID + CF_API_TOKEN (free images, optional)
 #           DAILY_EDIT_CAP (default 30) | TRUSTED_PROXIES (default 1)
 #           Netlify mirror: set CORS_ORIGINS and ALLOWED_ORIGINS to your Netlify URL (e.g. https://nahata-ai.netlify.app),
 #           comma-separated if you have more than one (custom domain + the .netlify.app one).
-# Start on Render: gunicorn server:app --timeout 150
+# Start on Render: gunicorn server:app --timeout 180
 from flask import Flask, request, jsonify, send_file, send_from_directory, Response, stream_with_context, abort, g
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import HTTPException
@@ -34,7 +34,7 @@ def pub(path):
 client = None
 try:
     from groq import Groq
-    k = os.environ.get("GROQ_API_KEY", "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").strip()
+    k = os.environ.get("GROQ_API_KEY", "").strip()
     if k:
         client = Groq(api_key=k); log.info("Groq OK")
     else:
@@ -42,13 +42,17 @@ try:
 except Exception as e:
     log.error("Groq error %s", type(e).__name__)
 
-BFL_KEY = os.environ.get("BFL_API_KEY", "bfl_oBu7BPgVTdfawuDTbkjDTBawrR9lzgTG").strip()
-BFL_URL = os.environ.get("BFL_API_URL", "https://api.bfl.ai/v1")
+BFL_KEY = os.environ.get("BFL_API_KEY", "").strip()
+# Qwen Image Edit: optional generative photo-edit provider. The key stays server-side.
+QWEN_KEY = (os.environ.get("QWEN_API_KEY", "") or os.environ.get("DASHSCOPE_API_KEY", "")).strip()
+QWEN_IMAGE_MODEL = os.environ.get("QWEN_IMAGE_MODEL", "qwen-image-3.0-pro").strip() or "qwen-image-3.0-pro"
+QWEN_EDIT_URL = os.environ.get("QWEN_EDIT_URL", "https://maas.qwencloudapi.com/api/v1/services/aigc/multimodal-generation/generation")
+BFL_URL = os.environ.get("BFL_API_URL", "https://api.bfl.ai/v1").rstrip("/")
 CF_ACCOUNT = os.environ.get("CF_ACCOUNT_ID", "").strip()
-CF_TOKEN = os.environ.get("CF_API_TOKEN", "sk_V2_hgu_kka77odG7h7_Nt1WFCKePvoH6Sdj4TdaUVB2nzGd2nME").strip()
+CF_TOKEN = os.environ.get("CF_API_TOKEN", "").strip()
 EDIT_CAP = int(os.environ.get("DAILY_EDIT_CAP", "30"))
 GEN_CAP = int(os.environ.get("DAILY_GEN_CAP", "40"))
-BFL_IMAGE_MODEL = os.environ.get("BFL_IMAGE_MODEL", "flux-pro-1.1")
+BFL_IMAGE_MODEL = os.environ.get("BFL_IMAGE_MODEL", "flux-2-pro").strip().strip("/") or "flux-2-pro"
 HEYGEN_KEY = os.environ.get("HEYGEN_API_KEY", "").strip()
 HEYGEN_URL = os.environ.get("HEYGEN_API_URL", "https://api.heygen.com")
 HEYGEN_AVATAR = os.environ.get("HEYGEN_AVATAR_ID", "").strip()
@@ -469,7 +473,7 @@ def see_photo(path, question):
     with open(path, "rb") as f:
         b64 = base64.b64encode(f.read()).decode()
     content = [{"type": "text", "text": question}, {"type": "image_url", "image_url": {"url": f"data:image/{ext};base64,{b64}"}}]
-    for m in dict.fromkeys([os.environ.get("GROQ_VISION_MODEL", ""), "qwen/qwen3.6-27b", "qwen/qwen3.8-27b"]):
+    for m in dict.fromkeys([os.environ.get("GROQ_VISION_MODEL", ""), "qwen/qwen3.6-27b", "meta-llama/llama-4-scout-17b-16e-instruct"]):
         if not m:
             continue
         try:
@@ -478,12 +482,53 @@ def see_photo(path, question):
             log.warning("vision %s failed: %s", m, type(e).__name__)
     return "I could not read the photo with Groq's vision models. Set GROQ_VISION_MODEL to a model listed at console.groq.com/docs/vision."
 
+def qwen_edit_photo(path, instruction):
+    """Generative image-to-image editing using Qwen Image Edit, with the API key kept on the server."""
+    if not QWEN_KEY:
+        raise RuntimeError("QWEN_API_KEY is not configured")
+    with open(path, "rb") as f:
+        raw = f.read()
+    mime = "image/png" if raw.startswith(b"\x89PNG\r\n\x1a\n") else "image/webp" if raw[8:12] == b"WEBP" else "image/jpeg"
+    data_uri = "data:" + mime + ";base64," + base64.b64encode(raw).decode("ascii")
+    payload = {
+        "model": QWEN_IMAGE_MODEL,
+        "input": {"messages": [{"role": "user", "content": [
+            {"image": data_uri}, {"text": instruction[:1500]}
+        ]}]},
+        "parameters": {"n": 1, "watermark": False, "prompt_extend": True, "size": "1024*1024"}
+    }
+    r = requests.post(QWEN_EDIT_URL, headers={"Authorization": "Bearer " + QWEN_KEY,
+                         "Content-Type": "application/json", "Accept": "application/json"},
+                      json=payload, timeout=180)
+    r.raise_for_status()
+    j = r.json()
+    try:
+        content = j["output"]["choices"][0]["message"]["content"]
+        image_url = next(item["image"] for item in content if isinstance(item, dict) and item.get("image"))
+    except (KeyError, IndexError, StopIteration, TypeError) as e:
+        # Do not include provider response bodies or credentials in the user-facing error.
+        raise RuntimeError("Qwen did not return an edited image") from e
+    out = requests.get(image_url, timeout=120)
+    out.raise_for_status()
+    data = out.content
+    if not (data.startswith(b"\x89PNG\r\n\x1a\n") or data.startswith(b"\xff\xd8\xff") or data[:4] == b"RIFF"):
+        raise RuntimeError("Qwen returned an unsupported image format")
+    ext = ".png" if data.startswith(b"\x89PNG\r\n\x1a\n") else ".jpg"
+    name = f"edit_{uuid.uuid4().hex}{ext}"
+    with open(f"generated/{name}", "wb") as out_file:
+        out_file.write(data)
+    return pub(f"/generated-img/{name}")
+
+
 def edit_photo(path, instruction):
+    # Prefer Qwen Image Edit when configured; keep the existing BFL/FLUX route as fallback.
+    if QWEN_KEY:
+        return qwen_edit_photo(path, instruction)
     with open(path, "rb") as f:
         b64 = base64.b64encode(f.read()).decode()
     h = {"x-key": BFL_KEY, "accept": "application/json", "Content-Type": "application/json"}
-    r = requests.post(f"{BFL_URL}/flux-kontext-pro", headers=h, timeout=60,
-                      json={"prompt": instruction[:1500], "input_image": b64, "output_format": "jpeg"})
+    r = requests.post(f"{BFL_URL}/flux-2-pro", headers=h, timeout=60,
+                      json={"prompt": instruction[:1500], "input_image": b64, "width": 1024, "height": 1024, "output_format": "jpeg"})
     r.raise_for_status()
     j = r.json()
     poll = j.get("polling_url") or f"{BFL_URL}/get_result?id={j['id']}"
@@ -593,17 +638,9 @@ def cf_image(prompt):
 
 def create_pdf(text, filepath):
     text = text.replace("**", "").replace("##", "").replace("###", "")
-    # This hand-written PDF writer only has the standard Latin font built in, so it can't draw
-    # Hindi or other non-Latin script. Rather than silently dropping those characters, replace
-    # them with "?" so the loss is visible, and say so plainly at the top of the document.
-    had_unsupported = bool(re.search(r"[^\x00-\xff]", text))
-    if had_unsupported:
-        text = text.encode("latin-1", errors="replace").decode("latin-1")
     wrapped = []
     for para in text.split("\n"):
         wrapped.extend(textwrap.wrap(para, width=82) or [""])
-    if had_unsupported:
-        wrapped = ["[Note: this PDF can only draw Latin-script text; characters it could", "not draw were replaced with '?' below.]", ""] + wrapped
     pages = [wrapped[i:i+50] for i in range(0, len(wrapped), 50)] or [["No content"]]
     streams = []
     for pg in pages:
@@ -639,7 +676,7 @@ def home():
 
 @app.route("/manifest.webmanifest")
 def manifest():
-    v = "?v=3"  # change this number whenever you replace the icon files, so phones fetch the new logo
+    v = "?v=7"  # bump this value whenever app icons are replaced
     m = {"id": "/", "name": "Nahata.AI", "short_name": "Nahata.AI", "description": "Jarvis and Ultron AI assistant",
          "lang": "en", "prefer_related_applications": False, "start_url": "/", "scope": "/", "display": "standalone",
          "background_color": "#030B14", "theme_color": "#030B14",
@@ -647,7 +684,13 @@ def manifest():
                    {"src": "/static/icon-512.png" + v, "sizes": "512x512", "type": "image/png", "purpose": "any"},
                    {"src": "/static/icon-maskable-512.png" + v, "sizes": "512x512", "type": "image/png", "purpose": "maskable"}],
          "shortcuts": [{"name": "Open YouTube", "url": "/?cmd=open+youtube"}, {"name": "Open Maps", "url": "/?cmd=open+maps"}]}
-    return Response(json.dumps(m), mimetype="application/manifest+json")
+    return Response(json.dumps(m), mimetype="application/manifest+json", headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+
+@app.route("/favicon.ico")
+def favicon():
+    # Serve a real PNG favicon as well as the manifest icons for browsers that ignore the manifest favicon.
+    return send_file(os.path.join(app.root_path, "static", "icon-192.png"), mimetype="image/png",
+                     max_age=0, conditional=False)
 
 @app.route("/icon.svg")
 def icon():
@@ -772,14 +815,26 @@ def tts():
 
 @app.route("/sw.js")
 def service_worker():
-    js = ("self.addEventListener('install',()=>self.skipWaiting());"
-          "self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));"
-          "self.addEventListener('fetch',()=>{});")
-    return Response(js, mimetype="application/javascript", headers={"Cache-Control": "no-cache"})
+    js = r'''const CACHE = "nahata-ai-shell-v7";
+const SHELL = ["/", "/manifest.webmanifest", "/static/icon-192.png?v=7", "/static/icon-512.png?v=7", "/static/icon-maskable-512.png?v=7", "/static/apple-touch-icon.png?v=7"];
+self.addEventListener("install", event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).catch(() => {}).then(() => self.skipWaiting())));
+self.addEventListener("activate", event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith("nahata-ai-shell-") && key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));
+self.addEventListener("fetch", event => {
+  const req = event.request, url = new URL(req.url);
+  if (req.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith("/chat") || url.pathname.startsWith("/tts") || url.pathname.startsWith("/api") || url.pathname.startsWith("/generated-img/")) return;
+  if (req.mode === "navigate") {
+    event.respondWith(fetch(req).then(res => { if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(cache => cache.put("/", copy)); } return res; }).catch(() => caches.match("/").then(res => res || new Response("Nahata.AI needs an internet connection for AI features. Reconnect and reload.", {status: 503, headers: {"Content-Type": "text/plain; charset=utf-8"}}))));
+    return;
+  }
+  if (url.pathname.startsWith("/static/") || url.pathname === "/manifest.webmanifest" || url.pathname === "/favicon.ico") {
+    event.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => { if (res.ok) caches.open(CACHE).then(cache => cache.put(req, res.clone())); return res; })));
+  }
+});'''
+    return Response(js, mimetype="application/javascript", headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Service-Worker-Allowed": "/"})
 
 @app.route("/check-key")
 def check_key():
-    return jsonify({"client_ok": client is not None, "photo_edit_ok": bool(BFL_KEY), "flux_images_ok": bool(BFL_KEY), "heygen_ok": bool(HEYGEN_KEY), "male_voice_ok": has_edge_tts() or bool(ELEVEN_KEY), "premium_voice_ok": bool(ELEVEN_KEY and ELEVEN_VOICES["jarvis"] and ELEVEN_VOICES["ultron"]), "cloudflare_images": bool(CF_ACCOUNT and CF_TOKEN), "pdf_ok": PDF_OK, "photo_tools_ok": Image is not None, "video_ok": FFMPEG is not None})
+    return jsonify({"client_ok": client is not None, "photo_edit_ok": bool(BFL_KEY or QWEN_KEY), "qwen_image_edit_ok": bool(QWEN_KEY), "flux_images_ok": bool(BFL_KEY), "heygen_ok": bool(HEYGEN_KEY), "male_voice_ok": has_edge_tts() or bool(ELEVEN_KEY), "premium_voice_ok": bool(ELEVEN_KEY and ELEVEN_VOICES["jarvis"] and ELEVEN_VOICES["ultron"]), "cloudflare_images": bool(CF_ACCOUNT and CF_TOKEN), "pdf_ok": PDF_OK, "photo_tools_ok": Image is not None, "video_ok": FFMPEG is not None})
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -819,7 +874,7 @@ def chat():
                     return jsonify({"reply": "I have your photo. Tell me what to do, for example: make it clearer, brighten it, turn it black and white, rotate it, remove the person on the left, or add a person next to me."})
                 op = local_op(msg)
                 low2 = re.sub(r"\b(fix|remove|reduce) (the )?blur\b", "", msg.lower())
-                if op and (not re.search(r"\b(remove|erase|delete|add|replace|put|insert|background|theme)\b", low2) or not BFL_KEY):
+                if op and (not re.search(r"\b(remove|erase|delete|add|replace|put|insert|background|theme)\b", low2) or not (BFL_KEY or QWEN_KEY)):
                     if Image is None:
                         return jsonify({"reply": "Photo tools are not installed yet. Add pillow to your requirements and redeploy."})
                     if limited("edit", 10):
@@ -832,8 +887,8 @@ def chat():
                     return jsonify({"reply": OP_TEXT[op] + note, "image": url, "original_image": pub(f"/view-file/{safe}"), "edited": True})
                 if not wants_edit(msg):
                     return jsonify({"reply": see_photo(path, msg)})
-                if not BFL_KEY:
-                    return jsonify({"reply": "Photo editing needs an image-editing model, and none is connected yet. Add BFL_API_KEY to your server's environment variables and redeploy."})
+                if not (BFL_KEY or QWEN_KEY):
+                    return jsonify({"reply": "Generative photo editing is not connected yet. Add QWEN_API_KEY (Qwen Image Edit; new-account free quota may be limited) or BFL_API_KEY in Render Environment, then redeploy. Simple edits such as brightness and rotation work without either key."})
                 if limited("edit", 5):
                     return jsonify({"reply": BUSY}), 429
                 if not under_cap("edit", EDIT_CAP):
