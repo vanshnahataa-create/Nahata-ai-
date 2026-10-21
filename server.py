@@ -34,7 +34,7 @@ def pub(path):
 client = None
 try:
     from groq import Groq
-    k = os.environ.get("GROQ_API_KEY", "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").strip()
+    k = os.environ.get("GROQ_API_KEY", "").strip()
     if k:
         client = Groq(api_key=k); log.info("Groq OK")
     else:
@@ -42,18 +42,18 @@ try:
 except Exception as e:
     log.error("Groq error %s", type(e).__name__)
 
-BFL_KEY = os.environ.get("BFL_API_KEY", "bfl_DVpQCHzNbR7XwcSfVlJWPl0c3CKKA3Zz").strip()
+BFL_KEY = os.environ.get("BFL_API_KEY", "").strip()
 # Qwen Image Edit: optional generative photo-edit provider. The key stays server-side.
 QWEN_KEY = (os.environ.get("QWEN_API_KEY", "") or os.environ.get("DASHSCOPE_API_KEY", "")).strip()
 QWEN_IMAGE_MODEL = os.environ.get("QWEN_IMAGE_MODEL", "qwen-image-3.0-pro").strip() or "qwen-image-3.0-pro"
 QWEN_EDIT_URL = os.environ.get("QWEN_EDIT_URL", "https://maas.qwencloudapi.com/api/v1/services/aigc/multimodal-generation/generation")
 BFL_URL = os.environ.get("BFL_API_URL", "https://api.bfl.ai/v1").rstrip("/")
 CF_ACCOUNT = os.environ.get("CF_ACCOUNT_ID", "").strip()
-CF_TOKEN = os.environ.get("CF_API_TOKEN", "cfut_FdOMkVwq84iP0Qy9Q5opoQr2Hwf9r6FJyMffXMs67ec91b6b").strip()
+CF_TOKEN = os.environ.get("CF_API_TOKEN", "").strip()
 EDIT_CAP = int(os.environ.get("DAILY_EDIT_CAP", "30"))
 GEN_CAP = int(os.environ.get("DAILY_GEN_CAP", "40"))
 BFL_IMAGE_MODEL = os.environ.get("BFL_IMAGE_MODEL", "flux-2-pro").strip().strip("/") or "flux-2-pro"
-HEYGEN_KEY = os.environ.get("HEYGEN_API_KEY", "sk_V2_hgu_kYtGKgYW0ds_pBETw2zne9pvVnGkft8xXu9Pxnw21doM").strip()
+HEYGEN_KEY = os.environ.get("HEYGEN_API_KEY", "").strip()
 HEYGEN_URL = os.environ.get("HEYGEN_API_URL", "https://api.heygen.com")
 HEYGEN_AVATAR = os.environ.get("HEYGEN_AVATAR_ID", "").strip()
 HEYGEN_VOICE = os.environ.get("HEYGEN_VOICE_ID", "").strip()
@@ -676,7 +676,7 @@ def home():
 
 @app.route("/manifest.webmanifest")
 def manifest():
-    v = "?v=7"  # bump this value whenever app icons are replaced
+    v = "?v=8"  # bump this value whenever app icons are replaced
     m = {"id": "/", "name": "Nahata.AI", "short_name": "Nahata.AI", "description": "Jarvis and Ultron AI assistant",
          "lang": "en", "prefer_related_applications": False, "start_url": "/", "scope": "/", "display": "standalone",
          "background_color": "#030B14", "theme_color": "#030B14",
@@ -815,8 +815,8 @@ def tts():
 
 @app.route("/sw.js")
 def service_worker():
-    js = r'''const CACHE = "nahata-ai-shell-v7";
-const SHELL = ["/", "/manifest.webmanifest", "/static/icon-192.png?v=7", "/static/icon-512.png?v=7", "/static/icon-maskable-512.png?v=7", "/static/apple-touch-icon.png?v=7"];
+    js = r'''const CACHE = "nahata-ai-shell-v8";
+const SHELL = ["/", "/manifest.webmanifest", "/static/icon-192.png?v=8", "/static/icon-512.png?v=8", "/static/icon-maskable-512.png?v=8", "/static/apple-touch-icon.png?v=8"];
 self.addEventListener("install", event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).catch(() => {}).then(() => self.skipWaiting())));
 self.addEventListener("activate", event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith("nahata-ai-shell-") && key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));
 self.addEventListener("fetch", event => {
