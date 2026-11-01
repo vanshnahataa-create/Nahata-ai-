@@ -8,7 +8,7 @@
 #           Netlify mirror: set CORS_ORIGINS and ALLOWED_ORIGINS to your Netlify URL (e.g. https://nahata-ai.netlify.app),
 #           comma-separated if you have more than one (custom domain + the .netlify.app one).
 # Start on Render: gunicorn server:app --timeout 150
-from flask import Flask, request, jsonify, send_file, send_from_directory, Response, stream_with_context, abort, g
+from flask import Flask, request, jsonify, send_file, send_from_directory, Response, stream_with_context, abort, g, redirect
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -42,15 +42,15 @@ try:
 except Exception as e:
     log.error("Groq error %s", type(e).__name__)
 
-BFL_KEY = os.environ.get("BFL_API_KEY", "bfl_DVpQCHzNbR7XwcSfVlJWPl0c3CKKA3Zz").strip()
+BFL_KEY = os.environ.get("BFL_API_KEY", "").strip()
 BFL_URL = os.environ.get("BFL_API_URL", "https://api.bfl.ai/v1")
 CF_ACCOUNT = os.environ.get("CF_ACCOUNT_ID", "").strip()
-CF_TOKEN = os.environ.get("CF_API_TOKEN", "cfut_FdOMkVwq84iP0Qy9Q5opoQr2Hwf9r6FJyMffXMs67ec91b6b").strip()
+CF_TOKEN = os.environ.get("CF_API_TOKEN", "").strip()
 EDIT_CAP = int(os.environ.get("DAILY_EDIT_CAP", "30"))
 GEN_CAP = int(os.environ.get("DAILY_GEN_CAP", "40"))
 BFL_IMAGE_MODEL = os.environ.get("BFL_IMAGE_MODEL", "flux-pro-1.1")
-HEYGEN_KEY = os.environ.get("HEYGEN_API_KEY", "sk_V2_hgu_kYtGKgYW0ds_pBETw2zne9pvVnGkft8xXu9Pxnw21doM").strip()
-HEYGEN_URL = os.environ.get("HEYGEN_API_URL", "https://agsk_uQGlbdrmhCiFB4s47yEBWGdyb3FYqHgTXdOTnCC0aVnaD0NZxiNPpi.heygen.com")
+HEYGEN_KEY = os.environ.get("HEYGEN_API_KEY", "").strip()
+HEYGEN_URL = os.environ.get("HEYGEN_API_URL", "https://api.heygen.com")
 HEYGEN_AVATAR = os.environ.get("HEYGEN_AVATAR_ID", "").strip()
 HEYGEN_VOICE = os.environ.get("HEYGEN_VOICE_ID", "").strip()
 VIDEO_CAP = int(os.environ.get("DAILY_VIDEO_CAP", "5"))
@@ -637,6 +637,15 @@ def real_question_paper(topic):
 def home():
     return send_from_directory(os.path.join(app.root_path, "templates"), "index.html")
 
+@app.route("/download/android")
+def download_android_companion():
+    """Redirect to the published companion APK when the deployment owner configures it."""
+    target = os.environ.get("NAHATA_ANDROID_APK_URL", "").strip()
+    if target.startswith("https://"):
+        return redirect(target, code=302)
+    page = """<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nahata AI Android Companion</title><body style="margin:0;background:#030b14;color:#e6faff;font:16px system-ui;padding:28px;line-height:1.55"><main style="max-width:620px;margin:8vh auto;padding:24px;border:1px solid #00d4ff;border-radius:20px;background:#08202f"><h1 style="color:#00d4ff">Nahata AI Android Companion</h1><p>The companion APK has not been published to this website yet.</p><p>The Android source is included in the Nahata AI project. Build it with the GitHub Actions workflow named <b>Build Nahata AI Companion APK</b>, publish the APK, then set the Render environment variable <code>NAHATA_ANDROID_APK_URL</code> to its HTTPS download address.</p><p>The <b>Install App</b> button installs the website as a PWA on supported browsers. It is separate from the Android companion APK.</p><a href="/" style="color:#00d4ff">Back to Nahata AI</a></main></body></html>"""
+    return Response(page, status=503, mimetype="text/html")
+
 @app.route("/manifest.webmanifest")
 def manifest():
     v = "?v=3"  # change this number whenever you replace the icon files, so phones fetch the new logo
@@ -772,10 +781,22 @@ def tts():
 
 @app.route("/sw.js")
 def service_worker():
-    js = ("self.addEventListener('install',()=>self.skipWaiting());"
-          "self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));"
-          "self.addEventListener('fetch',()=>{});")
-    return Response(js, mimetype="application/javascript", headers={"Cache-Control": "no-cache"})
+    # Cache the app shell and static assets so the installed PWA can open offline.
+    # API calls are deliberately never cached: stale AI responses must not be shown.
+    js = r"""const CACHE='nahata-shell-v2';
+const SHELL=['/','/manifest.webmanifest','/static/icon-192.png','/static/icon-512.png','/static/icon-maskable-512.png','/static/apple-touch-icon.png'];
+self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).catch(()=>{}).then(()=>self.skipWaiting())));
+self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('nahata-shell-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
+self.addEventListener('fetch',event=>{
+ const req=event.request; const url=new URL(req.url);
+ if(req.method!=='GET'||url.origin!==self.location.origin) return;
+ if(url.pathname.startsWith('/chat')||url.pathname.startsWith('/upload')||url.pathname.startsWith('/tts')||url.pathname.startsWith('/check-key')||url.pathname.startsWith('/video-')) return;
+ if(req.mode==='navigate'){
+  event.respondWith(fetch(req).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put('/',copy));return res;}).catch(()=>caches.match('/'))); return;
+ }
+ if(url.pathname.startsWith('/static/')) event.respondWith(caches.match(req).then(hit=>hit||fetch(req).then(res=>{if(res.ok){const copy=res.clone();caches.open(CACHE).then(c=>c.put(req,copy));}return res;})));
+});"""
+    return Response(js, mimetype="application/javascript", headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"})
 
 @app.route("/check-key")
 def check_key():
