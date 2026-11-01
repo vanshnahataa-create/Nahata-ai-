@@ -34,7 +34,7 @@ def pub(path):
 client = None
 try:
     from groq import Groq
-    k = os.environ.get("GROQ_API_KEY", "").strip()
+    k = os.environ.get("GROQ_API_KEY", "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").strip()
     if k:
         client = Groq(api_key=k); log.info("Groq OK")
     else:
@@ -42,14 +42,14 @@ try:
 except Exception as e:
     log.error("Groq error %s", type(e).__name__)
 
-BFL_KEY = os.environ.get("BFL_API_KEY", "").strip()
+BFL_KEY = os.environ.get("BFL_API_KEY", "bfl_DVpQCHzNbR7XwcSfVlJWPl0c3CKKA3Zz").strip()
 BFL_URL = os.environ.get("BFL_API_URL", "https://api.bfl.ai/v1")
 CF_ACCOUNT = os.environ.get("CF_ACCOUNT_ID", "").strip()
-CF_TOKEN = os.environ.get("CF_API_TOKEN", "").strip()
+CF_TOKEN = os.environ.get("CF_API_TOKEN", "cfut_FdOMkVwq84iP0Qy9Q5opoQr2Hwf9r6FJyMffXMs67ec91b6b").strip()
 EDIT_CAP = int(os.environ.get("DAILY_EDIT_CAP", "30"))
 GEN_CAP = int(os.environ.get("DAILY_GEN_CAP", "40"))
 BFL_IMAGE_MODEL = os.environ.get("BFL_IMAGE_MODEL", "flux-pro-1.1")
-HEYGEN_KEY = os.environ.get("HEYGEN_API_KEY", "").strip()
+HEYGEN_KEY = os.environ.get("HEYGEN_API_KEY", "sk_V2_hgu_kYtGKgYW0ds_pBETw2zne9pvVnGkft8xXu9Pxnw21doM").strip()
 HEYGEN_URL = os.environ.get("HEYGEN_API_URL", "https://api.heygen.com")
 HEYGEN_AVATAR = os.environ.get("HEYGEN_AVATAR_ID", "").strip()
 HEYGEN_VOICE = os.environ.get("HEYGEN_VOICE_ID", "").strip()
