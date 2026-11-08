@@ -1,0 +1,15 @@
+name: Keep Nahata.AI awake
+
+# Pings the live site every 10 minutes so Render never puts it to sleep from inactivity,
+# which is what was causing the "Application Loading" wake-up screen for visitors.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:   # lets you also run it by hand from the Actions tab, to test it
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the site
+        run: curl -sf https://nahata-ai.onrender.com/check-key || true
