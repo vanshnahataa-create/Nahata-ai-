@@ -9,9 +9,16 @@
 #           comma-separated if you have more than one (custom domain + the .netlify.app one).
 # Start on Render: gunicorn server:app --timeout 150
 from flask import Flask, request, jsonify, send_file, send_from_directory, Response, stream_with_context, abort, g
-from flask import send_from_directory
+from werkzeug.utils import secure_filename
+from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
+from urllib.parse import quote, urlparse
+from collections import defaultdict, deque
+import os, uuid, textwrap, zipfile, re, base64, time, json, threading, logging, requests
 import os
+from flask import send_from_directory
 
+app = Flask(__name__)
 @app.route('/ads.txt')
 def ads_txt():
     return send_from_directory(
@@ -19,14 +26,6 @@ def ads_txt():
         'ads.txt',
         mimetype='text/plain'
     )
-from werkzeug.utils import secure_filename
-from werkzeug.exceptions import HTTPException
-from werkzeug.middleware.proxy_fix import ProxyFix
-from urllib.parse import quote, urlparse
-from collections import defaultdict, deque
-import os, uuid, textwrap, zipfile, re, base64, time, json, threading, logging, requests
-
-app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 60 * 1024 * 1024
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=int(os.environ.get("TRUSTED_PROXIES", "1")), x_proto=1, x_host=1)
 logging.basicConfig(level=logging.INFO)
